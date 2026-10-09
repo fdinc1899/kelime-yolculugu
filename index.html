@@ -1,1 +1,435 @@
 
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#101b37">
+<title>Kelime Yolculuğu</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ color:white;
+ background:linear-gradient(160deg,#101b37,#254d75 60%,#10233f);
+ min-height:100dvh;
+ user-select:none;
+ -webkit-user-select:none;
+}
+.game{
+ max-width:480px;
+ min-height:100dvh;
+ margin:auto;
+ padding:18px;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+}
+header{
+ width:100%;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+}
+h1{font-size:22px;margin:5px 0}
+.gold{color:#ffd66b}
+.pill{
+ background:#ffffff20;
+ border:1px solid #ffffff30;
+ border-radius:25px;
+ padding:10px 15px;
+}
+.city{
+ width:100%;
+ text-align:center;
+ margin:22px 0 12px;
+ padding:18px;
+ border-radius:22px;
+ background:linear-gradient(135deg,#354c85,#a46d8b);
+ box-shadow:0 12px 30px #0004;
+}
+.city .scene{font-size:48px}
+.city h2{margin:8px 0 4px}
+.city p{margin:0;color:#e8e8ff}
+.progress{
+ width:100%;
+ height:8px;
+ background:#ffffff25;
+ border-radius:20px;
+ margin-top:16px;
+ overflow:hidden;
+}
+#bar{
+ height:100%;
+ background:#ffd66b;
+ width:0%;
+ transition:width .3s;
+}
+.board{
+ display:flex;
+ flex-direction:column;
+ gap:12px;
+ margin:18px 0;
+ align-items:center;
+ width:100%;
+}
+.word{
+ display:flex;
+ justify-content:center;
+ gap:5px;
+}
+.cell{
+ width:42px;
+ height:46px;
+ border-radius:9px;
+ background:#ffffff15;
+ border:2px solid #ffffff60;
+ display:grid;
+ place-items:center;
+ font-size:23px;
+ font-weight:bold;
+}
+.cell.found{
+ background:#e9bb62;
+ color:#202a40;
+ border-color:#ffe49c;
+ animation:pop .3s;
+}
+@keyframes pop{
+ 50%{transform:scale(1.15)}
+}
+#message{
+ height:28px;
+ color:#ffdc7e;
+ font-weight:bold;
+ text-align:center;
+}
+#current{
+ height:45px;
+ font-size:30px;
+ letter-spacing:5px;
+ font-weight:bold;
+ text-align:center;
+}
+.wheel{
+ position:relative;
+ width:290px;
+ height:290px;
+ touch-action:none;
+ margin:0 auto;
+ border-radius:50%;
+ background:#ffffff12;
+ border:1px solid #ffffff24;
+ box-shadow:inset 0 0 40px #0002,0 15px 30px #0003;
+}
+#wires{
+ position:absolute;
+ inset:0;
+ width:100%;
+ height:100%;
+ pointer-events:none;
+}
+.letter{
+ position:absolute;
+ width:66px;
+ height:66px;
+ border-radius:50%;
+ background:linear-gradient(145deg,#fff,#dce7ff);
+ color:#263657;
+ display:grid;
+ place-items:center;
+ font-size:29px;
+ font-weight:800;
+ box-shadow:0 5px 0 #9ba9ca,0 10px 16px #0005;
+ transform:translate(-50%,-50%);
+}
+.letter.active{
+ background:#ffd36e;
+ box-shadow:0 5px 0 #bc8834,0 0 25px #ffd36e88;
+}
+.controls{
+ display:flex;
+ gap:10px;
+ justify-content:center;
+ margin:22px 0;
+}
+button{
+ border:0;
+ padding:13px 18px;
+ border-radius:20px;
+ background:#ffffff25;
+ color:white;
+ font-weight:bold;
+ font-size:15px;
+}
+button:active{transform:scale(.96)}
+.primary{
+ background:#ffd36e;
+ color:#27324a;
+}
+footer{
+ color:#ffffff80;
+ font-size:12px;
+ margin-top:auto;
+ padding:12px;
+}
+#next{
+ display:none;
+ position:fixed;
+ inset:0;
+ background:#061126dd;
+ align-items:center;
+ justify-content:center;
+ padding:20px;
+ z-index:5;
+}
+.modal{
+ background:linear-gradient(150deg,#315483,#182b4d);
+ border:1px solid #ffffff50;
+ padding:30px;
+ border-radius:25px;
+ text-align:center;
+ width:100%;
+ max-width:350px;
+ box-shadow:0 20px 50px #0008;
+}
+.modal h2{color:#ffd36e}
+</style>
+</head>
+<body>
+<div class="game">
+<header>
+ <div>
+  <h1>🧩 Kelime Yolculuğu</h1>
+  <small id="levelLabel">Bölüm 1</small>
+ </div>
+ <div class="pill gold">⭐ <span id="score">0</span></div>
+</header>
+
+<section class="city">
+ <div class="scene">🕌 🌉 🌅</div>
+ <h2>İstanbul Macerası</h2>
+ <p id="subtitle">Kelimeleri keşfet!</p>
+ <div class="progress"><div id="bar"></div></div>
+</section>
+
+<div class="board" id="board"></div>
+<div id="message">Harfleri sürükleyerek birleştir</div>
+<div id="current"></div>
+
+<div class="wheel" id="wheel">
+ <svg id="wires" viewBox="0 0 290 290"></svg>
+</div>
+
+<div class="controls">
+ <button onclick="shuffle()">🔀 Karıştır</button>
+ <button class="primary" onclick="hint()">💡 İpucu (-20)</button>
+</div>
+<footer>Kelime Yolculuğu • İstanbul</footer>
+</div>
+
+<div id="next">
+ <div class="modal">
+  <div style="font-size:55px">🏆</div>
+  <h2>Bölüm Tamamlandı!</h2>
+  <p>Harika! Bütün kelimeleri buldun.</p>
+  <button class="primary" onclick="nextLevel()">Sonraki Bölüm ➜</button>
+ </div>
+</div>
+
+<script>
+const levels=[
+ {letters:"KAPI",words:["KAPI","KAP","PAK","AKI"]},
+ {letters:"KALEM",words:["KALEM","KALE","KAL","MAL","EL","AL"]},
+ {letters:"KİTAP",words:["KİTAP","KAT","TAK","PAT","TİP","KAP"]},
+ {letters:"MASAL",words:["MASAL","MASA","ASAL","SAL","MAL","AL"]},
+ {letters:"DENİZ",words:["DENİZ","DİZE","İZ","DİZ","ZEN"]},
+ {letters:"BAHAR",words:["BAHAR","BAHAR","ARA","BAR","HAR"]}
+];
+let level=0,score=0,found=[],order=[];
+let selected=[],dragging=false,pointer={x:0,y:0};
+const $=id=>document.getElementById(id);
+const wheel=$("wheel");
+const saved=JSON.parse(localStorage.getItem("kelimeSave")||"{}");
+level=Math.max(0,Math.min(saved.level||0,levels.length-1));
+score=saved.score||0;
+
+function save(){
+ localStorage.setItem("kelimeSave",JSON.stringify({level,score}));
+}
+function getWords(){
+ return [...new Set(levels[level].words)];
+}
+function start(){
+ found=[];
+ selected=[];
+ order=[...levels[level].letters];
+ $("score").textContent=score;
+ $("levelLabel").textContent="Bölüm "+(level+1);
+ $("subtitle").textContent="Bölüm "+(level+1)+" • Kelimeleri bul";
+ $("message").textContent="Harfleri sürükleyerek birleştir";
+ $("next").style.display="none";
+ renderBoard();
+ renderWheel();
+ update();
+}
+function renderBoard(){
+ $("board").innerHTML="";
+ getWords().forEach(word=>{
+  const row=document.createElement("div");
+  row.className="word";
+  row.dataset.word=word;
+  for(const char of word){
+   const cell=document.createElement("div");
+   cell.className="cell";
+   cell.textContent=found.includes(word)?char:"";
+   if(found.includes(word))cell.classList.add("found");
+   row.appendChild(cell);
+  }
+  $("board").appendChild(row);
+ });
+}
+function position(i,n){
+ const angle=-Math.PI/2+2*Math.PI*i/n;
+ const radius=n===2?80:96;
+ return {
+  x:145+radius*Math.cos(angle),
+  y:145+radius*Math.sin(angle)
+ };
+}
+function renderWheel(){
+ wheel.querySelectorAll(".letter").forEach(e=>e.remove());
+ order.forEach((char,i)=>{
+  const p=position(i,order.length);
+  const el=document.createElement("div");
+  el.className="letter";
+  el.dataset.index=i;
+  el.style.left=p.x+"px";
+  el.style.top=p.y+"px";
+  el.textContent=char;
+  wheel.appendChild(el);
+ });
+ draw();
+}
+function localPoint(e){
+ const r=wheel.getBoundingClientRect();
+ return {
+  x:(e.clientX-r.left)*290/r.width,
+  y:(e.clientY-r.top)*290/r.height
+ };
+}
+function addAt(p){
+ let best=-1,dist=36;
+ order.forEach((_,i)=>{
+  const q=position(i,order.length);
+  const d=Math.hypot(q.x-p.x,q.y-p.y);
+  if(d<dist){dist=d;best=i}
+ });
+ if(best>=0&&!selected.includes(best)){
+  selected.push(best);
+  draw();
+  if(navigator.vibrate)navigator.vibrate(12);
+ }
+}
+function draw(){
+ const letters=wheel.querySelectorAll(".letter");
+ letters.forEach((el,i)=>el.classList.toggle("active",selected.includes(i)));
+ const pts=selected.map(i=>position(i,order.length));
+ const svg=$("wires");
+ svg.innerHTML="";
+ if(pts.length){
+  const all=dragging?[...pts,pointer]:pts;
+  const line=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+  line.setAttribute("points",all.map(p=>p.x+","+p.y).join(" "));
+  line.setAttribute("fill","none");
+  line.setAttribute("stroke","#ffd36e");
+  line.setAttribute("stroke-width","9");
+  line.setAttribute("stroke-linecap","round");
+  line.setAttribute("stroke-linejoin","round");
+  svg.appendChild(line);
+ }
+ $("current").textContent=selected.map(i=>order[i]).join("");
+}
+wheel.addEventListener("pointerdown",e=>{
+ e.preventDefault();
+ dragging=true;
+ selected=[];
+ pointer=localPoint(e);
+ wheel.setPointerCapture(e.pointerId);
+ addAt(pointer);
+});
+wheel.addEventListener("pointermove",e=>{
+ if(!dragging)return;
+ pointer=localPoint(e);
+ addAt(pointer);
+ draw();
+});
+function finish(){
+ if(!dragging)return;
+ dragging=false;
+ const word=selected.map(i=>order[i]).join("");
+ selected=[];
+ draw();
+ if(getWords().includes(word)&&!found.includes(word)){
+  found.push(word);
+  score+=word.length*10;
+  $("message").textContent="✨ Harika! "+word;
+  renderBoard();
+  update();
+  save();
+  if(found.length===getWords().length){
+   score+=100;
+   $("score").textContent=score;
+   save();
+   setTimeout(()=>$("next").style.display="flex",650);
+  }
+ }else{
+  $("message").textContent=found.includes(word)?"Bu kelime bulundu!":"Tekrar dene!";
+ }
+}
+wheel.addEventListener("pointerup",finish);
+wheel.addEventListener("pointercancel",finish);
+function update(){
+ $("score").textContent=score;
+ $("bar").style.width=(found.length/getWords().length*100)+"%";
+}
+function shuffle(){
+ for(let i=order.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [order[i],order[j]]=[order[j],order[i]];
+ }
+ selected=[];
+ renderWheel();
+}
+function hint(){
+ if(score<20){
+  $("message").textContent="İpucu için 20 puan gerekli";
+  return;
+ }
+ const word=getWords().find(w=>!found.includes(w));
+ if(!word)return;
+ score-=20;
+ $("message").textContent="💡 Aranan kelime: "+word[0]+"... ("+word.length+" harf)";
+ update();
+ save();
+}
+function nextLevel(){
+ if(level<levels.length-1){
+  level++;
+  save();
+  start();
+ }else{
+  $("next").querySelector("h2").textContent="Tüm Bölümler Tamamlandı!";
+  $("next").querySelector("p").textContent="Yeni bölümler yakında!";
+  $("next").querySelector("button").textContent="Yeniden Oyna";
+  $("next").querySelector("button").onclick=()=>{
+   level=0;score=0;save();start();
+  };
+ }
+}
+start();
+</script>
+</body>
+</html>
